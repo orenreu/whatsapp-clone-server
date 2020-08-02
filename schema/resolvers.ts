@@ -1,19 +1,20 @@
 import { DateTimeResolver, URLResolver } from 'graphql-scalars';
-import { chats, messages } from '../db';
+import { Message, chats, messages } from '../db';
+import { Resolvers } from '../types/graphql';
 
-const resolvers = {
+const resolvers: Resolvers = {
   Date: DateTimeResolver,
   URL: URLResolver,
 
   Chat: {
-    messages: (chat: any) => {
+    messages: (chat) => {
       return messages.filter((message) => chat.messages.includes(message.id));
     },
 
-    lastMessage: (chat: any) => {
+    lastMessage: (chat) => {
       const lastMessage = chat.messages[chat.messages.length - 1];
 
-      return messages.find((message) => message.id === lastMessage);
+      return messages.find((m) => m.id === lastMessage) || null;
     }
   },
 
@@ -21,13 +22,13 @@ const resolvers = {
     chats: () => {
       return chats;
     },
-    chat: (root: any, { chatId }: any) => {
-      return chats.find((c) => c.id === chatId);
+    chat(root, { chatId }) {
+      return chats.find((c) => c.id === chatId) || null;
     }
   },
 
   Mutation: {
-    addMessage: (root: any, { chatId, content }: any) => {
+    addMessage: (root, { chatId, content }) => {
       const chatIndex = chats.findIndex((c) => c.id === chatId);
 
       if (chatIndex === -1) return null;
@@ -36,7 +37,7 @@ const resolvers = {
 
       const messagesIds = messages.map((currentMessage) => Number(currentMessage.id));
       const messageId = String(Math.max(...messagesIds) + 1);
-      const message = {
+      const message: Message = {
         id: messageId,
         createdAt: new Date(),
         content
