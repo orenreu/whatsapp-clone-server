@@ -1,4 +1,5 @@
-import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer, PubSub } from 'apollo-server-express';
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import schema from './schema';
@@ -12,15 +13,19 @@ app.get('/_ping', (req, res) => {
   res.send('pong');
 });
 
-const server = new ApolloServer({ schema });
+const pubsub = new PubSub();
+const server = new ApolloServer({ schema, context: () => ({ pubsub }) });
 
 server.applyMiddleware({
   app,
   path: '/graphql'
 });
 
+const httpServer = http.createServer(app);
+server.installSubscriptionHandlers(httpServer);
+
 const port = process.env.PORT || 4000;
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
 });

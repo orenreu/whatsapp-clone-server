@@ -6,6 +6,12 @@ const resolvers: Resolvers = {
   Date: DateTimeResolver,
   URL: URLResolver,
 
+  Message: {
+    chat(message) {
+      return chats.find((c) => c.messages.some((m) => m === message.id)) || null;
+    }
+  },
+
   Chat: {
     messages: (chat) => {
       return messages.filter((message) => chat.messages.includes(message.id));
@@ -28,7 +34,7 @@ const resolvers: Resolvers = {
   },
 
   Mutation: {
-    addMessage: (root, { chatId, content }) => {
+    addMessage: (root, { chatId, content }, { pubsub }) => {
       const chatIndex = chats.findIndex((c) => c.id === chatId);
 
       if (chatIndex === -1) return null;
@@ -49,7 +55,17 @@ const resolvers: Resolvers = {
       chats.splice(chatIndex, 1);
       chats.unshift(chat);
 
+      pubsub.publish('messageAdded', {
+        messageAdded: message
+      });
+
       return message;
+    }
+  },
+
+  Subscription: {
+    messageAdded: {
+      subscribe: (root, args, { pubsub }) => pubsub.asyncIterator('messageAdded')
     }
   }
 };
